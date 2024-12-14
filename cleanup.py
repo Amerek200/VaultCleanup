@@ -9,15 +9,15 @@ PASTED_IMAGE_START = b'![[Pasted image'
 PASTED_IMAGE_END = b']]'
 
 referenced = set()
-vaultPath = "/home/sebastian/Projects" #restore to ""
-attachmentPath = "/home/sebastian/Projects" #restore to ""
+vaultPath = "C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault" #"/home/sebastian/Projects" #restore to ""
+attachmentPath = 'C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault/Anhaenge' #"/home/sebastian/Projects" #restore to ""
 osName = platform.system() #"Windows" or "Linux" for my use case
 
                     
 def extractAttachmentNames(absoluteFilePath: str) -> set[str]:
     res = set()
     with open(absoluteFilePath) as file:
-        if osName == "Linux": #2Do: set param according to OS
+        if osName == "Linux" or osName == "Windows": #2Do: set param according to OS
             with mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as mmapFile:
                 posStart = mmapFile.find(PASTED_IMAGE_START) #-1 if not found
                 posEnd = mmapFile.find(PASTED_IMAGE_END)

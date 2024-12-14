@@ -1,18 +1,23 @@
 #maybe todos: Benachmark reg. I/O vs. mmap, allow setting of (attachment) file extension 
+#check wants to move EVERYTHING to obs. something in my check must bew wrong
 
 import mmap #memory mapped file instead of "classic read". Not sure if better in this case but I wanted to use it.
 import os
+from pathlib import Path
 
 PASTED_IMAGE_START = b'![[Pasted image '
 PASTED_IMAGE_END = b']]'
 
 referenced = set()
-vaultPath = "C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault" #"/home/sebastian/Projects" #restore to ""
-attachmentPath = 'C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault/Anhaenge' #"/home/sebastian/Projects" #restore to ""
+vaultPath = Path("C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault") #"/home/sebastian/Projects" #restore to ""
+attachmentPath = Path('C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault/Anhaenge') #"/home/sebastian/Projects" #restore to ""
 
                     
-def extractAttachmentNames(absoluteFilePath: str) -> set[str]:
+def extractAttachmentNames(absoluteFilePath: Path) -> set[str]:
     res = set()
+    #check if file is empty by its size. Mmap runs into exception for empty files.
+    if absoluteFilePath.stat().st_size == 0:
+        return res
     with open(absoluteFilePath) as file:
         with mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as mmapFile:
             posStart = mmapFile.find(PASTED_IMAGE_START) #-1 if not found
@@ -33,28 +38,28 @@ def extractAttachmentNames(absoluteFilePath: str) -> set[str]:
 ################################
 
 #get vault path
-while not os.path.isdir(vaultPath):
-    vaultPath = input("Vault Directory: ")
+while not vaultPath.is_dir():
+    vaultPath = Path(input("Vault Directory: "))
 print("Vault Path set to: {}".format(vaultPath))
 
 #get attatchment path
-while not os.path.isdir(attachmentPath):
-    attachmentPath = input("Attachment Directory to check for obsolete files: ")
+while not attachmentPath.is_dir():
+    attachmentPath = Path(input("Attachment Directory to check for obsolete files: "))
 print("Attachment Path set to: {}".format(attachmentPath))
 
 #os.listdir to list every element in dir
 #queue not needed if we can use os.walk
 #os.path.join(dirpath, name) to get absolute path
 
-for (dirPath, dirNames, fileNames) in os.walk(vaultPath):
+for (dirPath, dirNames, fileNames) in vaultPath.walk():
     mdFiles = [f for f in fileNames if f.lower().endswith(".md")]
     for fileName in mdFiles:
-        absolutePath = os.path.join(dirPath, fileName)
+        absolutePath = Path(dirPath, fileName)
         referenced.update(extractAttachmentNames(absolutePath))
 
 #Scan attachment directory
-dirContent = os.listdir(attachmentPath)
-attachmentFiles = {f for f in dirContent if os.path.isfile( os.path.join(attachmentPath, f) )}
+dirContent = attachmentPath.iterdir()
+attachmentFiles = {f for f in dirContent if Path(attachmentPath, f).is_file()}
 #Get Difference between referenced and existing att. files
 diff = attachmentFiles.difference(referenced)
 
@@ -65,11 +70,11 @@ for fName in diff:
 
 print("#######################")
 obsoleteDirName = input("Directory name for obsolete files: ")
-obsoleteDirPath = os.path.join(attachmentPath, obsoleteDirName)
+obsoleteDirPath = Path(attachmentPath, obsoleteDirName)
 #invalid if path exsists and is not a directoy
-while os.path.exists(obsoleteDirPath) and not os.path.isdir(obsoleteDirPath):
+while obsoleteDirPath.exists() and not obsoleteDirPath.is_dir():
     obsoleteDirName = input("Invalid directroy name {0}. \nDirectroy name for obsolete files: ".format(obsoleteDirPath))
-    obsoleteDirPath = os.path.join(attachmentPath, obsoleteDirName)
+    obsoleteDirPath = Path(attachmentPath, obsoleteDirName)
 
 confirmation = input("moving {0} files to {1}. Type \"y\" to confirm, everything else to stop: ".format(len(diff), obsoleteDirPath))
 if confirmation == "y":

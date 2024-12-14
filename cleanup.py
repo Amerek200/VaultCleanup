@@ -1,35 +1,31 @@
 #maybe todos: Benachmark reg. I/O vs. mmap, allow setting of (attachment) file extension 
 
-
 import mmap #memory mapped file instead of "classic read". Not sure if better in this case but I wanted to use it.
-import platform #mmap constructor is os dependend, platform.system() returns OS 'Linux', 'Windows' etc.
 import os
 
-PASTED_IMAGE_START = b'![[Pasted image'
+PASTED_IMAGE_START = b'![[Pasted image '
 PASTED_IMAGE_END = b']]'
 
 referenced = set()
 vaultPath = "C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault" #"/home/sebastian/Projects" #restore to ""
 attachmentPath = 'C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault/Anhaenge' #"/home/sebastian/Projects" #restore to ""
-osName = platform.system() #"Windows" or "Linux" for my use case
 
                     
 def extractAttachmentNames(absoluteFilePath: str) -> set[str]:
     res = set()
     with open(absoluteFilePath) as file:
-        if osName == "Linux" or osName == "Windows": #2Do: set param according to OS
-            with mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as mmapFile:
-                posStart = mmapFile.find(PASTED_IMAGE_START) #-1 if not found
-                posEnd = mmapFile.find(PASTED_IMAGE_END)
-                while posStart >= 0 and posEnd > posStart:
-                    #better to use split() instead of this magic numbers?
-                    #16 = offset to remove "![[Pasted image "
-                    lenAttFileName = posEnd - posStart - 16
-                    mmapFile.seek(posStart + 16) #set position in mmapFile
-                    attFileName = mmapFile.read(lenAttFileName) #read length of fileName
-                    res.add(attFileName.decode("utf-8"))
-                    posStart = mmapFile.find(PASTED_IMAGE_START, posEnd  +  1)
-                    posEnd = mmapFile.find(PASTED_IMAGE_END, posEnd + 1)
+        with mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as mmapFile:
+            posStart = mmapFile.find(PASTED_IMAGE_START) #-1 if not found
+            posEnd = mmapFile.find(PASTED_IMAGE_END)
+            while posStart >= 0 and posEnd > posStart:
+                #better to use split() instead of this magic numbers?
+                #16 = offset to remove "![[Pasted image "
+                lenAttFileName = posEnd - posStart - len(PASTED_IMAGE_START)
+                mmapFile.seek(posStart + len(PASTED_IMAGE_START)) #set position in mmapFile
+                attFileName = mmapFile.read(lenAttFileName) #read length of fileName
+                res.add(attFileName.decode("utf-8"))
+                posStart = mmapFile.find(PASTED_IMAGE_START, posEnd  +  1)
+                posEnd = mmapFile.find(PASTED_IMAGE_END, posEnd + 1)
     return res
 
 ################################

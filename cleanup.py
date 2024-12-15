@@ -1,6 +1,7 @@
 #maybe todos: Benachmark reg. I/O vs. mmap, allow setting of (attachment) file extension 
 #check wants to move EVERYTHING to obs. something in my check must bew wrong
-#yeeeea referenced are the xxxx.png strings while attachmentFiles are not WindowsPath objects..
+#attachmentfiles consists of: Pasted image 20241208123742.png
+#ahh shits, thats actually the file name..
 
 import mmap #memory mapped file instead of "classic read". Not sure if better in this case but I wanted to use it.
 import os

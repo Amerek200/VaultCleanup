@@ -24,8 +24,7 @@ def extractAttachmentNames(absoluteFilePath: Path) -> set[str]:
             posStart = mmapFile.find(PASTED_IMAGE_START) #-1 if not found
             posEnd = mmapFile.find(PASTED_IMAGE_END)
             while posStart >= 0 and posEnd > posStart:
-                #better to use split() instead of this magic numbers?
-                #16 = offset to remove "![[Pasted image "
+                #better to use split() instead of this "magic number"?
                 lenAttFileName = posEnd - posStart - len(PASTED_IMAGE_START)
                 mmapFile.seek(posStart + len(PASTED_IMAGE_START)) #set position in mmapFile
                 attFileName = mmapFile.read(lenAttFileName) #read length of fileName
@@ -59,8 +58,8 @@ for (dirPath, dirNames, fileNames) in vaultPath.walk():
         referenced.update(extractAttachmentNames(absolutePath))
 
 #Scan attachment directory
-dirContent = attachmentPath.iterdir()
-attachmentFiles = {f for f in dirContent if Path(attachmentPath, f).is_file()}
+dirContent = attachmentPath.iterdir() #Generator of Path objects, abs or realtive?
+attachmentFiles = {f.name() for f in dirContent if f.is_file()} #is this Path() even neccessary?
 #Get Difference between referenced and existing att. files
 diff = attachmentFiles.difference(referenced)
 
@@ -79,12 +78,23 @@ while obsoleteDirPath.exists() and not obsoleteDirPath.is_dir():
 
 confirmation = input("moving {0} files to {1}. Type \"y\" to confirm, everything else to stop: ".format(len(diff), obsoleteDirPath))
 if confirmation == "y":
+    if not obsoleteDirPath.exists():
+        obsoleteDirPath.mkdir(parents = True) #creates directory and parent dirs if needed.
     #move files
+    for fname in diff:
+        oldPath = Path(attachmentPath, fname)
+        newPath = obsoleteDirPath.joinpath(fname)
+        print("Moving {0} to: {1}".format(oldPath, newPath))
+        #Path(attachmentPath, fname).rename(obsoleteDirPath.joinpath(fname)) 
     print("YEP")
 else:
     #do nothing and end
     print("No action taken.")
 print("done")
+
+#how to to the moving? 
+#Path("/home/usw").rename("/home/newPath"), rename param can be string or path
+#we can use Path.name to get just the file (or dir) name
 
 
         

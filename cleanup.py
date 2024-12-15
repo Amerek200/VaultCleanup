@@ -59,7 +59,7 @@ for (dirPath, dirNames, fileNames) in vaultPath.walk():
 
 #Scan attachment directory
 dirContent = attachmentPath.iterdir() #Generator of Path objects, abs or realtive?
-attachmentFiles = {f.name() for f in dirContent if f.is_file()} #is this Path() even neccessary?
+attachmentFiles = {f.name for f in dirContent if f.is_file()} #is this Path() even neccessary?
 #Get Difference between referenced and existing att. files
 diff = attachmentFiles.difference(referenced)
 

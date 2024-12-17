@@ -7,8 +7,8 @@ import mmap #memory mapped file instead of "classic read". Not sure if better in
 import os
 from pathlib import Path
 
-PASTED_IMAGE_START = b'![[Pasted image '
-PASTED_IMAGE_END = b']]'
+LINKED_CONTENT_START = b'![['
+LINKED_CONTENT_END = b']]'
 
 referenced = set()
 vaultPath = Path("C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault") #"/home/sebastian/Projects" #restore to ""
@@ -22,16 +22,19 @@ def extractAttachmentNames(absoluteFilePath: Path) -> set[str]:
         return res
     with open(absoluteFilePath) as file:
         with mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as mmapFile:
-            posStart = mmapFile.find(PASTED_IMAGE_START) #-1 if not found
-            posEnd = mmapFile.find(PASTED_IMAGE_END)
+            posStart = mmapFile.find(LINKED_CONTENT_START) #-1 if not found
+            posEnd = mmapFile.find(LINKED_CONTENT_END)
             while posStart >= 0 and posEnd > posStart:
                 #better to use split() instead of this "magic number"?
-                lenAttFileName = posEnd - posStart - len(PASTED_IMAGE_START)
-                mmapFile.seek(posStart + len(PASTED_IMAGE_START)) #set position in mmapFile
-                attFileName = mmapFile.read(lenAttFileName) #read length of fileName
-                res.add(attFileName.decode("utf-8"))
-                posStart = mmapFile.find(PASTED_IMAGE_START, posEnd  +  1)
-                posEnd = mmapFile.find(PASTED_IMAGE_END, posEnd + 1)
+                #here we have found a link and need to check if its linking to another page or a file. (=attachment)
+                #simple method would be to check if any . exists in filename.
+                lenContentName = posEnd - posStart - len(LINKED_CONTENT_START)
+                mmapFile.seek(posStart + len(LINKED_CONTENT_START)) #set position in mmapFile
+                linkedContentName = mmapFile.read(lenContentName).decode("utf-8") #read length of fileName
+                if len(linkedContentName.split(".")) > 1: #check if .xzy file
+                    res.add()
+                posStart = mmapFile.find(LINKED_CONTENT_START, posEnd  +  1)
+                posEnd = mmapFile.find(LINKED_CONTENT_END, posEnd + 1)
     return res
 
 ################################

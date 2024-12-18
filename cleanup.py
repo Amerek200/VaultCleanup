@@ -25,13 +25,14 @@ def extractAttachmentNames(absoluteFilePath: Path) -> set[str]:
             posStart = mmapFile.find(LINKED_CONTENT_START) #-1 if not found
             posEnd = mmapFile.find(LINKED_CONTENT_END)
             while posStart >= 0 and posEnd > posStart:
-                #better to use split() instead of this "magic number"?
                 #here we have found a link and need to check if its linking to another page or a file. (=attachment)
-                #simple method would be to check if any . exists in filename.
                 lenContentName = posEnd - posStart - len(LINKED_CONTENT_START)
                 mmapFile.seek(posStart + len(LINKED_CONTENT_START)) #set position in mmapFile
                 linkedContentName = mmapFile.read(lenContentName).decode("utf-8") #read length of fileName
-                if len(linkedContentName.split(".")) > 1: #check if .xzy file
+
+                #rudimentary filtering for links containing file extensions. (assumption: extensions are < 6 chars)
+                linkedContentNameSplitted = linkedContentName.split(".")
+                if len(linkedContentNameSplitted) > 1 and len(linkedContentNameSplitted[-1]) < 6:
                     res.add()
                 posStart = mmapFile.find(LINKED_CONTENT_START, posEnd  +  1)
                 posEnd = mmapFile.find(LINKED_CONTENT_END, posEnd + 1)

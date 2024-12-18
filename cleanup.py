@@ -11,7 +11,7 @@ LINKED_CONTENT_START = b'![['
 LINKED_CONTENT_END = b']]'
 
 referenced = set()
-vaultPath = Path("C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault") #"/home/sebastian/Projects" #restore to ""
+vaultPath = Path("C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault/WiSe 24-25/63211 Verteilte Systeme/KE2") #Path("C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault") #"/home/sebastian/Projects" #restore to ""
 attachmentPath = Path('C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault/Anhaenge') #"/home/sebastian/Projects" #restore to ""
 
                     
@@ -29,11 +29,12 @@ def extractAttachmentNames(absoluteFilePath: Path) -> set[str]:
                 lenContentName = posEnd - posStart - len(LINKED_CONTENT_START)
                 mmapFile.seek(posStart + len(LINKED_CONTENT_START)) #set position in mmapFile
                 linkedContentName = mmapFile.read(lenContentName).decode("utf-8") #read length of fileName
-
+                if linkedContentName == "Pasted image 20241120204759.png":
+                    print("found!")
                 #rudimentary filtering for links containing file extensions. (assumption: extensions are < 6 chars)
                 linkedContentNameSplitted = linkedContentName.split(".")
                 if len(linkedContentNameSplitted) > 1 and len(linkedContentNameSplitted[-1]) < 6:
-                    res.add()
+                    res.add(linkedContentName)
                 posStart = mmapFile.find(LINKED_CONTENT_START, posEnd  +  1)
                 posEnd = mmapFile.find(LINKED_CONTENT_END, posEnd + 1)
     return res
@@ -97,11 +98,19 @@ else:
     print("No action taken.")
 print("done")
 
-#how to to the moving? 
-#Path("/home/usw").rename("/home/newPath"), rename param can be string or path
-#we can use Path.name to get just the file (or dir) name
-
-
+#something still wrong
+#example: Pasted image 20241120204759.png 
+#is in diff but is referenced in .md file. (Thread Implementierung), C:\Users\sebad\OneDrive\Dokumente\Obsidian Vault\WiSe 24-25\63211 Verteilte Systeme\KE2
+#like this in file: ![[Pasted image 20241120204759.png]] Filter seems ok, removing it doenst change a thing.
+#size refrenced: 1930
+#size attachment: 3787
+#size diff: 1857
+#example2: Pasted image 20230410105409.png in if-else Anweisung but in diff
+#looks like this in file: ![[Pasted image 20230410105409.png]]
+#I gutess referenced isnt working as is should. We should expect at least 3k elements.
+#nicht attachment links sind [[WiSe 24-25/63211 Verteilte Systeme/KE2/Threads|Threads]] diser Art
+#d.h. ]] wird als posEnd gefunden und ist dann kleine als posStart ![[
+#![[xzy]] bindet verlinkte Ressource in Seite ein während [[xyz]] zur den Link anzeigt..
         
 #40: ![[Pasted image 20241115154748.png]]\n- K
 # What we search for:

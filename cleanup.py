@@ -1,22 +1,16 @@
-#maybe todos: Benachmark reg. I/O vs. mmap, allow setting of (attachment) file extension 
-#check wants to move EVERYTHING to obs. something in my check must bew wrong
-#attachmentfiles consists of: Pasted image 20241208123742.png
-#ahh shits, thats actually the file name..
-
 import mmap #memory mapped file instead of "classic read". Not sure if better in this case but I wanted to use it.
-import os
 from pathlib import Path
 
-LINKED_CONTENT_START = b'![['
+LINKED_CONTENT_START = b'[[' #![[xyz]] is for embedded links, [[]] regular links
 LINKED_CONTENT_END = b']]'
 
-referenced = set()
-vaultPath = Path("C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault/WiSe 24-25/63211 Verteilte Systeme/KE2") #Path("C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault") #"/home/sebastian/Projects" #restore to ""
-attachmentPath = Path('C:/Users/sebad/OneDrive/Dokumente/Obsidian Vault/Anhaenge') #"/home/sebastian/Projects" #restore to ""
+referenced = set() #set of filenames referenced in .md files.
+vaultPath = None #Path() to Vault directory
+attachmentPath = None #Path() to attachment directory
 
-                    
+#function used in script to keep it clean.  
 def extractAttachmentNames(absoluteFilePath: Path) -> set[str]:
-    res = set()
+    res = set() #set of attachment names as result
     #check if file is empty by its size. Mmap runs into exception for empty files.
     if absoluteFilePath.stat().st_size == 0:
         return res
@@ -29,8 +23,6 @@ def extractAttachmentNames(absoluteFilePath: Path) -> set[str]:
                 lenContentName = posEnd - posStart - len(LINKED_CONTENT_START)
                 mmapFile.seek(posStart + len(LINKED_CONTENT_START)) #set position in mmapFile
                 linkedContentName = mmapFile.read(lenContentName).decode("utf-8") #read length of fileName
-                if linkedContentName == "Pasted image 20241120204759.png":
-                    print("found!")
                 #rudimentary filtering for links containing file extensions. (assumption: extensions are < 6 chars)
                 linkedContentNameSplitted = linkedContentName.split(".")
                 if len(linkedContentNameSplitted) > 1 and len(linkedContentNameSplitted[-1]) < 6:
@@ -44,19 +36,16 @@ def extractAttachmentNames(absoluteFilePath: Path) -> set[str]:
 ################################
 
 #get vault path
-while not vaultPath.is_dir():
+while vaultPath is None or not vaultPath.is_dir():
     vaultPath = Path(input("Vault Directory: "))
 print("Vault Path set to: {}".format(vaultPath))
 
 #get attatchment path
-while not attachmentPath.is_dir():
+while attachmentPath is None or not attachmentPath.is_dir():
     attachmentPath = Path(input("Attachment Directory to check for obsolete files: "))
 print("Attachment Path set to: {}".format(attachmentPath))
 
-#os.listdir to list every element in dir
-#queue not needed if we can use os.walk
-#os.path.join(dirpath, name) to get absolute path
-
+#walk through vault directory tree. Extract attachment file names from every .md file.  
 for (dirPath, dirNames, fileNames) in vaultPath.walk():
     mdFiles = [f for f in fileNames if f.lower().endswith(".md")]
     for fileName in mdFiles:
@@ -64,10 +53,14 @@ for (dirPath, dirNames, fileNames) in vaultPath.walk():
         referenced.update(extractAttachmentNames(absolutePath))
 
 #Scan attachment directory
-dirContent = attachmentPath.iterdir() #Generator of Path objects, abs or realtive?
-attachmentFiles = {f.name for f in dirContent if f.is_file()} #is this Path() even neccessary?
-#Get Difference between referenced and existing att. files
+dirContent = attachmentPath.iterdir() #Generator of Path objects
+attachmentFiles = {f.name for f in dirContent if f.is_file()} #set of attachment files in attachment dir.
+#Get Difference between referenced and existing att. files -> those are the unreferenced files.
 diff = attachmentFiles.difference(referenced)
+
+if len(diff) == 0:
+    print("No obsolete files found.")
+    quit()
 
 #print obsolete files
 print("potential obsolete files:")
@@ -86,35 +79,13 @@ confirmation = input("moving {0} files to {1}. Type \"y\" to confirm, everything
 if confirmation == "y":
     if not obsoleteDirPath.exists():
         obsoleteDirPath.mkdir(parents = True) #creates directory and parent dirs if needed.
-    #move files
+    #move files by changing the pathname
     for fname in diff:
         oldPath = Path(attachmentPath, fname)
         newPath = obsoleteDirPath.joinpath(fname)
         print("Moving {0} to: {1}".format(oldPath, newPath))
-        #Path(attachmentPath, fname).rename(obsoleteDirPath.joinpath(fname)) 
-    print("YEP")
+        Path(attachmentPath, fname).rename(obsoleteDirPath.joinpath(fname)) 
+    print("Done")
 else:
     #do nothing and end
     print("No action taken.")
-print("done")
-
-#something still wrong
-#example: Pasted image 20241120204759.png 
-#is in diff but is referenced in .md file. (Thread Implementierung), C:\Users\sebad\OneDrive\Dokumente\Obsidian Vault\WiSe 24-25\63211 Verteilte Systeme\KE2
-#like this in file: ![[Pasted image 20241120204759.png]] Filter seems ok, removing it doenst change a thing.
-#size refrenced: 1930
-#size attachment: 3787
-#size diff: 1857
-#example2: Pasted image 20230410105409.png in if-else Anweisung but in diff
-#looks like this in file: ![[Pasted image 20230410105409.png]]
-#I gutess referenced isnt working as is should. We should expect at least 3k elements.
-#nicht attachment links sind [[WiSe 24-25/63211 Verteilte Systeme/KE2/Threads|Threads]] diser Art
-#d.h. ]] wird als posEnd gefunden und ist dann kleine als posStart ![[
-#![[xzy]] bindet verlinkte Ressource in Seite ein während [[xyz]] zur den Link anzeigt..
-        
-#40: ![[Pasted image 20241115154748.png]]\n- K
-# What we search for:
-# - **read-only** Attribute können in [[UML]] via `{readOnly}` Angabe beschrieben werden.
-# ![[Pasted image 20241121161004.png]]
-#
-#
